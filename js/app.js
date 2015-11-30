@@ -1,3 +1,24 @@
+$(document).ready( function() {
+	// get unanswered questions
+	$('.unanswered-getter').submit( function(event){
+		
+		// zero out results if previous search has run
+		$('.results').html('');
+		// get the value of the tags the user submitted
+		var tags = $(this).find("input[name='tags']").val();
+		getUnanswered(tags);
+	});
+	//inspritation getter 
+	$('.inspiration-getter').submit(function(event){
+		console.log("get inspired");
+		//zero out results if previous search run
+		$('.results').html('');
+		//get the value of the tags the user submitted
+		var answerers = $(this).find("input[name='answerers']").val();
+		getInspiration(answerers);
+	});
+}); //end ready function
+
 // this function takes the question object returned by the StackOverflow request
 // and returns new result to be appended to DOM
 var showQuestion = function(question) {
@@ -75,20 +96,47 @@ var getUnanswered = function(tags) {
 			$('.results').append(question);
 		});
 	})
-	.fail(function(jqXHR, error){ //this waits for the ajax to return with an error promise object
+	//this waits for the ajax to return with an error promise object
+	.fail(function(jqXHR, error){ 
 		var errorElem = showError(error);
 		$('.search-results').append(errorElem);
 	});
 };
 
+// Adding Inspiration feature
+var getInspiration = function(tag) {
+    var url = "http://api.stackexchange.com/2.2/tags/" + tag + "/top-answerers/all_time";
+    var request = {
+        site: 'stackoverflow'
+    };
 
-$(document).ready( function() {
-	$('.unanswered-getter').submit( function(e){
-		e.preventDefault();
-		// zero out results if previous search has run
-		$('.results').html('');
-		// get the value of the tags the user submitted
-		var tags = $(this).find("input[name='tags']").val();
-		getUnanswered(tags);
-	});
-});
+    var result = $.ajax({
+        url: url,
+        data: request,
+        dataType: "jsonp",
+        type: "GET"
+    }).done(function(result) {
+        var searchResults = showSearchResults(tag, result.items.length);
+        $('.search-results').html(searchResults);
+
+        $.each(result.items, function(index, item) {
+            var inspiration = showInspiration(item);
+            $('.results').append(inspiration);
+        });
+    }).fail(function() {
+        alert('error');
+    });
+};
+
+var showInspiration = function(item) {
+	var result = $('.templates .inspiration').clone();
+	var user = result.find('.user a')
+		.attr('href', item.user.link)
+		.text(item.user.display_name);
+    var image = "<img src='" + item.user.profile_image + "' alt='" + item.user.display_name + "'>";
+    $(user).append(image);
+	result.find('.post-count').text(item.post_count);
+	result.find('.score').text(item.score);
+
+	return result;
+};
